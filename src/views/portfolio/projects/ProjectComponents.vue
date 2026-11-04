@@ -104,6 +104,7 @@ import { get } from 'lodash-es';
 import bootstrapTableMixin from '@/mixins/bootstrapTableMixin';
 import filterPillsMixin from '@/mixins/filterPillsMixin';
 import { buildHashVerificationColumn } from '@/shared/hashVerificationColumn';
+import ComponentLicenseDropdown from '@/views/components/ComponentLicenseDropdown.vue';
 
 const EXPAND_BY_COLUMN = {
   metrics: 'metrics',
@@ -408,26 +409,13 @@ export default {
           field: 'license',
           sortable: false,
           visible: initialColumnVisible('license'),
-          formatter(value, row) {
-            if (row.resolved_license) {
-              const licenseurl =
-                '../../../licenses/' + row.resolved_license.license_id;
-              return (
-                '<a href="' +
-                licenseurl +
-                '">' +
-                xssFilters.inHTMLData(row.resolved_license.license_id) +
-                '</a>'
-              );
-            } else if (value) {
-              return xssFilters.inHTMLData(common.valueWithDefault(value, ''));
-            } else if (row.license_expression) {
-              return xssFilters.inHTMLData(
-                common.valueWithDefault(row.license_expression, ''),
-              );
-            }
-            return '';
-          },
+          formatter: (_value, row) =>
+            this.cell(ComponentLicenseDropdown, {
+              componentUuid: row.uuid,
+              initialLicense: row.resolved_license,
+              initialLicenseName: row.license,
+              initialLicenseExpression: row.license_expression,
+            }),
         },
         {
           title: this.$t('message.occurrences'),

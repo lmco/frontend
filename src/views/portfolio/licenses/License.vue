@@ -9,65 +9,67 @@
       >
         <template v-slot:title>{{ $t('message.overview') }}</template>
         <table>
-          <tr>
-            <td class="heading">{{ $t('message.license_name') }}:</td>
-            <td>{{ license.name }}</td>
-          </tr>
-          <tr>
-            <td class="heading">{{ $t('message.spdx_license_id') }}:</td>
-            <td>{{ license.licenseId }}</td>
-          </tr>
-          <tr>
-            <td class="heading">{{ $t('message.osi_approved') }}:</td>
-            <td>
-              <span v-if="license.isOsiApproved"
-                ><i class="fa fa-check-square-o"
-              /></span>
-              <span v-else><i class="fa fa-square-o" /></span>
-            </td>
-          </tr>
-          <tr>
-            <td class="heading">{{ $t('message.fsf_libre') }}:</td>
-            <td>
-              <span v-if="license.isFsfLibre"
-                ><i class="fa fa-check-square-o"
-              /></span>
-              <span v-else><i class="fa fa-square-o" /></span>
-            </td>
-          </tr>
-          <tr>
-            <td class="heading">{{ $t('message.deprecated') }}:</td>
-            <td>
-              <span v-if="license.isDeprecatedLicenseId"
-                ><i class="fa fa-check-square-o"
-              /></span>
-              <span v-else><i class="fa fa-square-o" /></span>
-            </td>
-          </tr>
-          <tr>
-            <td class="heading">{{ $t('message.custom_license') }}:</td>
-            <td>
-              <span v-if="license.isCustomLicense"
-                ><i class="fa fa-check-square-o"
-              /></span>
-              <span v-else><i class="fa fa-square-o" /></span>
-            </td>
-          </tr>
-          <tr>
-            <td class="heading">{{ $t('message.comments') }}:</td>
-            <td>{{ license.licenseComments }}</td>
-          </tr>
-          <tr>
-            <td></td>
-            <td>
-              <img
-                v-if="license.isOsiApproved"
-                src="@/assets/img//osi-logo.svg"
-                alt="OSI logo"
-                width="80"
-              />
-            </td>
-          </tr>
+          <tbody>
+            <tr>
+              <td class="heading">{{ $t('message.license_name') }}:</td>
+              <td>{{ license.name }}</td>
+            </tr>
+            <tr>
+              <td class="heading">{{ $t('message.spdx_license_id') }}:</td>
+              <td>{{ license.licenseId }}</td>
+            </tr>
+            <tr>
+              <td class="heading">{{ $t('message.osi_approved') }}:</td>
+              <td>
+                <span v-if="license.isOsiApproved"
+                  ><i class="fa fa-check-square-o"
+                /></span>
+                <span v-else><i class="fa fa-square-o" /></span>
+              </td>
+            </tr>
+            <tr>
+              <td class="heading">{{ $t('message.fsf_libre') }}:</td>
+              <td>
+                <span v-if="license.isFsfLibre"
+                  ><i class="fa fa-check-square-o"
+                /></span>
+                <span v-else><i class="fa fa-square-o" /></span>
+              </td>
+            </tr>
+            <tr>
+              <td class="heading">{{ $t('message.deprecated') }}:</td>
+              <td>
+                <span v-if="license.isDeprecatedLicenseId"
+                  ><i class="fa fa-check-square-o"
+                /></span>
+                <span v-else><i class="fa fa-square-o" /></span>
+              </td>
+            </tr>
+            <tr>
+              <td class="heading">{{ $t('message.custom_license') }}:</td>
+              <td>
+                <span v-if="license.isCustomLicense"
+                  ><i class="fa fa-check-square-o"
+                /></span>
+                <span v-else><i class="fa fa-square-o" /></span>
+              </td>
+            </tr>
+            <tr>
+              <td class="heading">{{ $t('message.comments') }}:</td>
+              <td>{{ license.licenseComments }}</td>
+            </tr>
+            <tr>
+              <td></td>
+              <td>
+                <img
+                  v-if="license.isOsiApproved"
+                  src="@/assets/img//osi-logo.svg"
+                  alt="OSI logo"
+                  width="80"
+                />
+              </td>
+            </tr>
+          </tbody>
         </table>
       </b-tab>
       <b-tab ref="licensetext" @click="routeTo('licenseText')">

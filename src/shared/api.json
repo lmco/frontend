@@ -29,6 +29,7 @@
   "URL_LICENSE": "api/v1/license",
   "URL_LICENSE_CONCISE": "api/v1/license/concise",
   "URL_LICENSE_GROUP": "api/v1/licenseGroup",
+  "URL_V2_LICENSES": "api/v2/licenses",
   "URL_LOGIN": "api/v1/user/login",
   "URL_METRICS": "api/v1/metrics",
   "URL_NOTIFICATION_PUBLISHER": "api/v1/notification/publisher",
