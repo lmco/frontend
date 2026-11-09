@@ -88,3 +88,27 @@ test('link a component to the dependency graph', async ({ page }) => {
       .filter({ has: page.locator('.fa-sitemap') }),
   ).toHaveAttribute('href', /\/dependencyGraph\//);
 });
+
+test('expand and collapse component licenses', async ({ page }) => {
+  const { project } = seed();
+  await login(page);
+  await page.goto(`projects/${project.uuid}/components`);
+
+  const row = page.getByRole('row', { name: 'jackson-core' });
+  await expect(row).toBeVisible();
+  
+  const toggle = row.getByRole('button', { name: 'Apache-2.0' });
+  await toggle.click();
+  await expect(row.getByText('Apache License 2.0')).toBeVisible();
+  await toggle.click();
+  await expect(row.getByText('Apache License 2.0')).toBeHidden();
+});
+
+test('no license toggle for a component without licenses', async ({ page }) => {
+  const { project } = seed();
+  await login(page);
+  await page.goto(`projects/${project.uuid}/components`);
+
+  const row = page.getByRole('row', { name: 'commons-lang3' });
+  await expect(row.getByRole('button', { name: /license/i })).toHaveCount(0);
+});

@@ -1,7 +1,7 @@
 <template>
   <div>
     <b-button
-      v-if="hasLicense"
+      v-if="hasLicense && licenses.length > 1"
       size="sm"
       variant="link"
       class="p-0 text-start"
