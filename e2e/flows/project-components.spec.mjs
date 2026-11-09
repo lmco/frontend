@@ -89,26 +89,175 @@ test('link a component to the dependency graph', async ({ page }) => {
   ).toHaveAttribute('href', /\/dependencyGraph\//);
 });
 
-test('expand and collapse component licenses', async ({ page }) => {
+test('expand and collapse licenses for one component', async ({ page }) => {
   const { project } = seed();
+
   await login(page);
   await page.goto(`projects/${project.uuid}/components`);
 
-  const row = page.getByRole('row', { name: 'jackson-core' });
-  await expect(row).toBeVisible();
-  
-  const toggle = row.getByRole('button', { name: 'Apache-2.0' });
+  const row = page.getByRole('row').filter({ hasText: 'jackson-databind' });
+
+  const toggle = row.getByRole('button', {
+    name: /Apache License 2\.0.*\+1/i,
+  });
+
+  const apacheLicense = row.getByRole('link', {
+    name: 'Apache License 2.0',
+    exact: true,
+  });
+
+  const mitLicense = row.getByRole('link', {
+    name: 'MIT License',
+    exact: true,
+  });
+
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  await expect(apacheLicense).toBeHidden();
+  await expect(mitLicense).toBeHidden();
+
   await toggle.click();
-  await expect(row.getByText('Apache License 2.0')).toBeVisible();
+
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+  await expect(apacheLicense).toBeVisible();
+  await expect(mitLicense).toBeVisible();
+
   await toggle.click();
-  await expect(row.getByText('Apache License 2.0')).toBeHidden();
+
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  await expect(apacheLicense).toBeHidden();
+  await expect(mitLicense).toBeHidden();
 });
 
-test('no license toggle for a component without licenses', async ({ page }) => {
+test('expand and collapse all component licenses', async ({ page }) => {
   const { project } = seed();
+
   await login(page);
   await page.goto(`projects/${project.uuid}/components`);
 
-  const row = page.getByRole('row', { name: 'commons-lang3' });
-  await expect(row.getByRole('button', { name: /license/i })).toHaveCount(0);
+  const multipleLicenseRow = page
+    .getByRole('row')
+    .filter({ hasText: 'jackson-databind' });
+
+  const singleLicenseRow = page
+    .getByRole('row')
+    .filter({ hasText: 'jackson-core' });
+
+  const noLicenseRow = page
+    .getByRole('row')
+    .filter({ hasText: 'jackson-annotations' });
+
+  const apacheLicense = multipleLicenseRow.getByRole('link', {
+    name: 'Apache License 2.0',
+    exact: true,
+  });
+
+  const mitLicense = multipleLicenseRow.getByRole('link', {
+    name: 'MIT License',
+    exact: true,
+  });
+
+  const expandAll = page.getByRole('button', {
+    name: 'Expand all licenses',
+    exact: true,
+  });
+
+  await expect(apacheLicense).toBeHidden();
+  await expect(mitLicense).toBeHidden();
+  await expect(expandAll).toHaveAttribute('aria-pressed', 'false');
+
+  await expandAll.click();
+
+  await expect(apacheLicense).toBeVisible();
+  await expect(mitLicense).toBeVisible();
+
+  const collapseAll = page.getByRole('button', {
+    name: 'Collapse all licenses',
+    exact: true,
+  });
+
+  await expect(collapseAll).toBeVisible();
+  await expect(collapseAll).toHaveAttribute('aria-pressed', 'true');
+
+  await expect(
+    singleLicenseRow.getByRole('link', {
+      name: 'Apache License 2.0',
+      exact: true,
+    }),
+  ).toBeVisible();
+
+  await expect(
+    singleLicenseRow.getByRole('button', {
+      name: /Apache License 2\.0/i,
+    }),
+  ).toHaveCount(0);
+
+  await expect(noLicenseRow.getByText('-', { exact: true })).toBeVisible();
+
+  await collapseAll.click();
+
+  await expect(apacheLicense).toBeHidden();
+  await expect(mitLicense).toBeHidden();
+
+  await expect(
+    page.getByRole('button', {
+      name: 'Expand all licenses',
+      exact: true,
+    }),
+  ).toHaveAttribute('aria-pressed', 'false');
+});
+
+test('show component licenses based on license count', async ({ page }) => {
+  const { project } = seed();
+
+  await login(page);
+  await page.goto(`projects/${project.uuid}/components`);
+
+  const multipleLicenseRow = page
+    .getByRole('row')
+    .filter({ hasText: 'jackson-databind' });
+
+  const singleLicenseRow = page
+    .getByRole('row')
+    .filter({ hasText: 'jackson-core' });
+
+  const noLicenseRow = page
+    .getByRole('row')
+    .filter({ hasText: 'jackson-annotations' });
+
+  await expect(multipleLicenseRow).toBeVisible();
+  await expect(singleLicenseRow).toBeVisible();
+  await expect(noLicenseRow).toBeVisible();
+
+  const multipleLicenseToggle = multipleLicenseRow.getByRole('button', {
+    name: /Apache License 2\.0.*\+1/i,
+  });
+
+  await expect(multipleLicenseToggle).toBeVisible();
+
+  await expect(
+    singleLicenseRow.getByRole('link', {
+      name: 'Apache License 2.0',
+      exact: true,
+    }),
+  ).toBeVisible();
+
+  await expect(
+    singleLicenseRow.getByRole('button', {
+      name: /Apache License 2\.0/i,
+    }),
+  ).toHaveCount(0);
+
+  await expect(noLicenseRow.getByText('-', { exact: true })).toBeVisible();
+
+  await expect(
+    noLicenseRow.getByRole('link', {
+      name: /license/i,
+    }),
+  ).toHaveCount(0);
+
+  await expect(
+    noLicenseRow.getByRole('button', {
+      name: /license/i,
+    }),
+  ).toHaveCount(0);
 });

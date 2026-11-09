@@ -4,7 +4,18 @@
     {
       "bom-ref": "jackson-databind",
       "group": "com.fasterxml.jackson.core",
-      "licenses": [{ "license": { "id": "Apache-2.0" } }],
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        },
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
       "name": "jackson-databind",
       "purl": "pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.13.2.2",
       "type": "library",
@@ -31,7 +42,6 @@
     {
       "bom-ref": "jackson-annotations",
       "group": "com.fasterxml.jackson.core",
-      "licenses": [{ "license": { "id": "Apache-2.0" } }],
       "name": "jackson-annotations",
       "purl": "pkg:maven/com.fasterxml.jackson.core/jackson-annotations@2.13.2",
       "type": "library",

@@ -105,6 +105,7 @@ import bootstrapTableMixin from '@/mixins/bootstrapTableMixin';
 import filterPillsMixin from '@/mixins/filterPillsMixin';
 import { buildHashVerificationColumn } from '@/shared/hashVerificationColumn';
 import ComponentLicenseDropdown from '@/views/components/ComponentLicenseDropdown.vue';
+import eventBus from '@/shared/eventbus';
 
 const EXPAND_BY_COLUMN = {
   metrics: 'metrics',
@@ -185,6 +186,20 @@ export default {
         toolbar: '#componentsToolbar',
         search: true,
         searchable: false,
+        buttons: {
+          toggleAllLicenses: {
+            icon: 'fa fa-expand',
+            attributes: {
+              title: this.$t('message.expand_all_licenses'),
+              'aria-label': this.$t('message.expand_all_licenses'),
+              'aria-pressed': 'false',
+            },
+            event: () => {
+              this.toggleAllLicenses();
+            },
+          },
+        },
+        buttonsOrder: ['refresh', 'toggleAllLicenses', 'columns'],
         onSearch: (text) => {
           this.searchText = text;
         },
@@ -194,6 +209,7 @@ export default {
           this.initializeTooltips();
           // Reloading a page rebuilds the rows, dropping any selection.
           this.updateSelectionCount();
+          this.updateLicenseToggleButton();
         },
         onCheck: () => this.updateSelectionCount(),
         onUncheck: () => this.updateSelectionCount(),
@@ -220,6 +236,7 @@ export default {
       },
       sortBy: sort.name,
       sortDirection: sort.order,
+      allLicensesExpanded: false,
     };
   },
   computed: {
@@ -412,9 +429,7 @@ export default {
           formatter: (_value, row) =>
             this.cell(ComponentLicenseDropdown, {
               componentUuid: row.uuid,
-              initialLicense: row.resolved_license,
-              initialLicenseName: row.license,
-              initialLicenseExpression: row.license_expression,
+              initiallyExpanded: this.allLicensesExpanded,
             }),
         },
         {
@@ -568,6 +583,49 @@ export default {
       if (this.$refs.table) {
         this.$refs.table.refreshCurrentPage();
       }
+    },
+    toggleAllLicenses() {
+      this.allLicensesExpanded = !this.allLicensesExpanded;
+
+      eventBus.emit(
+        'set-all-component-licenses-expanded',
+        this.allLicensesExpanded,
+      );
+
+      this.$nextTick(() => {
+        this.updateLicenseToggleButton();
+      });
+    },
+    updateLicenseToggleButton() {
+      const button = this.$el.querySelector('button[name="toggleAllLicenses"]');
+
+      if (!button) {
+        return;
+      }
+
+      const expanded = this.allLicensesExpanded;
+      const title = expanded
+        ? this.$t('message.collapse_all_licenses')
+        : this.$t('message.expand_all_licenses');
+      const icon = button.querySelector('i');
+
+      button.title = title;
+      button.setAttribute('aria-label', title);
+      button.setAttribute('aria-pressed', expanded.toString());
+
+      if (icon) {
+        icon.classList.toggle('fa-expand', !expanded);
+        icon.classList.toggle('fa-compress', expanded);
+      }
+    },
+    resetAllLicensesExpanded() {
+      this.allLicensesExpanded = false;
+
+      eventBus.emit('set-all-component-licenses-expanded', false);
+
+      this.$nextTick(() => {
+        this.updateLicenseToggleButton();
+      });
     },
   },
 };
