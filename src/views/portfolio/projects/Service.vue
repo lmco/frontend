@@ -34,24 +34,19 @@
         </div>
       </template>
     </b-card>
-    <b-tabs class="body-bg-color">
-      <b-tab
-        class="body-bg-color overview-chart border-start-0 border-end-0 border-top-0"
-        active
-      >
+    <b-tabs>
+      <b-tab active>
         <template v-slot:title
           ><i class="fa fa-line-chart"></i>
           {{ $t('message.overview') }}</template
         >
-        <service-dashboard
-          style="border-left: 0; border-right: 0; border-top: 0"
-        />
+        <service-dashboard />
       </b-tab>
     </b-tabs>
     <service-details-modal
       v-model="showServiceDetailsModal"
       :service="cloneDeep(service)"
-      v-on:serviceUpdated="syncServiceFields"
+      v-on:serviceUpdated="loadService"
     />
   </div>
 </template>
@@ -112,28 +107,26 @@ export default {
     cloneDeep: function (service) {
       return cloneDeep(service);
     },
-    syncServiceFields: function (service) {
-      this.service = service;
-      EventBus.emit('addCrumb', this.serviceLabel);
-      setPageTitle(this.serviceLabel);
+    loadService: function () {
+      let serviceUrl = `${this.$api.BASE_URL}/${this.$api.URL_SERVICE}/${this.uuid}`;
+      this.axios.get(serviceUrl).then((response) => {
+        this.service = response.data;
+        EventBus.emit(
+          'addCrumb',
+          this.serviceLabel,
+          'Project',
+          this.service.project.uuid,
+          this.projectLabel,
+        );
+        setPageTitle(this.serviceLabel);
+      });
     },
   },
   beforeMount() {
     this.uuid = this.$route.params.uuid;
   },
   mounted() {
-    let serviceUrl = `${this.$api.BASE_URL}/${this.$api.URL_SERVICE}/${this.uuid}`;
-    this.axios.get(serviceUrl).then((response) => {
-      this.service = response.data;
-      EventBus.emit(
-        'addCrumb',
-        this.serviceLabel,
-        'Project',
-        this.service.project.uuid,
-        this.projectLabel,
-      );
-      setPageTitle(this.serviceLabel);
-    });
+    this.loadService();
     /* TODO: Add when server supports service metrics
     let metricsUrl = `${this.$api.BASE_URL}/${this.$api.URL_METRICS}/service/${this.uuid}/current`;
     this.axios.get(metricsUrl).then((response) => {
@@ -153,9 +146,6 @@ export default {
 </script>
 
 <style scoped>
-.overview-chart {
-  padding: 0;
-}
 .badge {
   margin-right: 0.4rem;
 }

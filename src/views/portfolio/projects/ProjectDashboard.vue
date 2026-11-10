@@ -1,6 +1,6 @@
 <template>
   <div>
-    <b-card style="border-left: 0; border-right: 0; border-top: 0">
+    <b-card>
       <b-row>
         <b-col sm="5">
           <h4 id="chart-portfolio-vulns" class="card-title mb-0">
@@ -201,7 +201,7 @@ export default {
   },
   data() {
     return {
-      metricDays: this.metricDays,
+      metricDays: localStorage.getItem('projectMetricDays') ?? 30,
       currentCritical: 0,
       currentHigh: 0,
       currentMedium: 0,
@@ -260,20 +260,14 @@ export default {
     fetchMetrics() {
       let url = `${this.$api.BASE_URL}/${this.$api.URL_METRICS}/project/${this.uuid}/days/${this.metricDays}`;
       this.axios.get(url).then((response) => {
-        this.$refs.chartProjectVulnerabilities.render(response.data);
-        this.$refs.chartPolicyViolationsState.render(response.data);
-        this.$refs.chartPolicyViolationBreakdown.render(response.data);
-        this.$refs.chartAuditingFindingsProgress.render(response.data);
-        this.$refs.chartComponentVulnerabilities.render(response.data);
+        this.$refs.chartProjectVulnerabilities?.render(response.data);
+        this.$refs.chartPolicyViolationsState?.render(response.data);
+        this.$refs.chartPolicyViolationBreakdown?.render(response.data);
+        this.$refs.chartAuditingFindingsProgress?.render(response.data);
+        this.$refs.chartComponentVulnerabilities?.render(response.data);
         this.extractStats(response.data);
       });
     },
-  },
-  beforeMount() {
-    this.metricDays =
-      localStorage && localStorage.getItem('projectMetricDays') !== null
-        ? localStorage.getItem('projectMetricDays')
-        : 30;
   },
   mounted() {
     this.fetchMetrics();

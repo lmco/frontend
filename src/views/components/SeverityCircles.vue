@@ -5,7 +5,7 @@
     v-b-tooltip.hover="severity.tooltip"
     class="text-center mb-0 me-3"
   >
-    <vue-easy-pie-chart
+    <progress-ring
       :bar-color="severity.color"
       font-size="14px"
       :track-color="trackColor"
@@ -14,27 +14,27 @@
       :line-width="3"
       :percent="100"
       :size="50"
-      :animate="true"
-      >{{ severity.count }}</vue-easy-pie-chart
+      >{{ severity.count }}</progress-ring
     >
     <figcaption class="font-xs text-muted">
-      {{ $t(`severity.${severity.name}`) }}
+      {{ severity.caption }}
     </figcaption>
   </figure>
 </template>
 
 <script>
-import VueEasyPieChart from './VueEasyPieChart.vue';
+import ProgressRing from './ProgressRing.vue';
 import { themeColor } from '@/shared/theme';
 
 export default {
-  components: { VueEasyPieChart },
+  components: { ProgressRing },
   props: {
     critical: Number,
     high: Number,
     medium: Number,
     low: Number,
     unassigned: Number,
+    kev: Number,
   },
   computed: {
     severities() {
@@ -45,12 +45,26 @@ export default {
         low: this.$t('vulnerability.low'),
         unassigned: this.$t('vulnerability.unassigned'),
       };
-      return Object.entries(tooltips).map(([name, tooltip]) => ({
+      const severities = Object.entries(tooltips).map(([name, tooltip]) => ({
         name,
+        caption: this.$t(`severity.${name}`),
         count: this[name],
         color: themeColor(`--severity-${name}`),
         tooltip,
       }));
+      if (this.kev === undefined) {
+        return severities;
+      }
+      return [
+        ...severities,
+        {
+          name: 'kev',
+          caption: this.$t('message.kev'),
+          count: this.kev,
+          color: themeColor('--bs-danger'),
+          tooltip: this.$t('vulnerability.kev'),
+        },
+      ];
     },
     trackColor() {
       return themeColor('--dt-surface-recessed');
