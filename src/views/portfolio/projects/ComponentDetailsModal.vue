@@ -262,27 +262,24 @@
                 :id="`${licenseCollapseId(license)}-license`"
                 input-group-size="mb-3"
                 type="text"
-                :model-value="licenseValue(license)"
+                v-model="license.license"
                 :label="$t('message.license')"
-                readonly
               />
 
               <b-input-group-form-input
                 :id="`${licenseCollapseId(license)}-expression`"
                 input-group-size="mb-3"
                 type="text"
-                :model-value="license.license_expression || ''"
+                v-model="license.license_expression"
                 :label="$t('message.license_expression')"
-                readonly
               />
 
               <b-input-group-form-input
                 :id="`${licenseCollapseId(license)}-url`"
                 input-group-size="mb-3"
                 type="text"
-                :model-value="license.license_url || ''"
+                v-model="license.license_url"
                 :label="$t('message.license_url')"
-                readonly
               />
             </b-collapse>
           </div>
@@ -668,14 +665,14 @@ export default {
     updateComponent: function () {
       this.visible = false;
       let url = `${this.$api.BASE_URL}/${this.$api.URL_COMPONENTS}/${this.component.uuid}`;
-      let licenses = (this.component.licenses ?? []).map(currentLicense => {
+      let licenses = (this.associatedLicenses ?? []).map(currentLicense => {
         const expression = currentLicense.license_expression;
-        const license = currentLicense.resolved_license?.license_id ?? currentLicense.resolvedLicense?.license;
+        const license = currentLicense.license ?? currentLicense.resolved_license?.license_id ?? currentLicense.resolvedLicense?.licenseId;
         const licenseUrl = currentLicense.license_url;
         return {
           ...(expression ? { license_expression: expression } : license ? { license } : {}),
           ...(licenseUrl ? { license_url: licenseUrl } : {}),
-          acknowledgement: currentLicense.acknowledgement ?? "DECLARED",
+          acknowledgement: ['DECLARED', 'CONCLUDED'].includes(currentLicense.acknowledgement) ? currentLicense.acknowledgement : "DECLARED",
         }
       });
       this.axios
@@ -749,7 +746,7 @@ export default {
       this.associatedLicensesLoading = true;
       this.associatedLicensesError = false;
     
-      const url = `${this.$api.BASE_URL}/api/v2/licenses/${encodeURIComponent(
+      const url = `${this.$api.BASE_URL}/${this.$api.URL_V2_LICENSES}/${encodeURIComponent(
         this.component.uuid,
       )}`;
     
@@ -770,6 +767,8 @@ export default {
           this.associatedLicenses.push(...(response.data.items || []));
           pageToken = response.data.next_page_token;
         } while (pageToken);
+
+        this.component.licenses = this.associatedLicenses;
       } catch {
         this.associatedLicensesError = true;
         this.$toastr.w(this.$t('condition.unsuccessful_action'));
@@ -787,11 +786,6 @@ export default {
         '-'
       );
     },
-    associatedLicenseRoute(license) {
-      return `/licenses/${encodeURIComponent(
-        license.resolved_license.license_id,
-      )}`;
-    },
     associatedLicenseKey(license) {
       return [
         license.ordinality,
@@ -806,22 +800,6 @@ export default {
         license.license ||
         ''
       );
-    },
-    associatedLicenseLabel(license) {
-      return (
-        license.resolved_license?.name ||
-        license.resolved_license?.license_id ||
-        license.license ||
-        license.license_expression ||
-        this.$t('message.license')
-      );
-    },
-    associatedLicenseKey(license) {
-      return [
-        license.ordinality,
-        license.acknowledgement,
-        this.licenseValue(license),
-      ].join(':');
     },
     licenseCollapseId(license) {
       return `component-license-${this.component.uuid}-${license.ordinality}`;
