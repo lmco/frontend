@@ -4,7 +4,7 @@
     size="lg"
     no-stacking
     :title="$t('message.component_details')"
-    @show="initializeSelectedLicense"
+    @show="loadAssociatedLicenses"
   >
     <b-tabs>
       <b-tab active>
@@ -207,67 +207,94 @@
           ><i class="fa fa-balance-scale"></i>
           {{ $t('message.legal') }}</template
         >
-        <b-input-group-form-select
-          id="component-license-input"
-          required="false"
-          v-model="selectedLicense"
-          :options="selectableLicenses"
-          :label="$t('message.license')"
-          :tooltip="$t('message.component_spdx_license_desc')"
-          :disabled="
-            this.isNotPermitted([
-              PERMISSIONS.PORTFOLIO_MANAGEMENT,
-              PERMISSIONS.PORTFOLIO_MANAGEMENT_UPDATE,
-            ])
-          "
-        />
-        <b-input-group-form-input
-          id="component-license-expression"
-          input-group-size="mb-3"
-          type="text"
-          v-model="component.licenseExpression"
-          required="false"
-          :label="$t('message.license_expression')"
-          :tooltip="$t('message.component_license_expression_desc')"
-          :readonly="
-            this.isNotPermitted([
-              PERMISSIONS.PORTFOLIO_MANAGEMENT,
-              PERMISSIONS.PORTFOLIO_MANAGEMENT_UPDATE,
-            ])
-          "
-        />
-        <b-input-group-form-input
-          id="component-license-url-input"
-          input-group-size="mb-3"
-          type="text"
-          v-model="component.licenseUrl"
-          required="false"
-          :label="$t('message.license_url')"
-          :tooltip="$t('message.component_license_url_desc')"
-          :readonly="
-            this.isNotPermitted([
-              PERMISSIONS.PORTFOLIO_MANAGEMENT,
-              PERMISSIONS.PORTFOLIO_MANAGEMENT_UPDATE,
-            ])
-          "
-        />
-        <b-form-group
-          id="component-copyright-form-group"
-          :label="this.$t('message.copyright')"
-          label-for="component-copyright-input"
-        >
-          <b-form-textarea
-            id="component-description-description"
-            v-model="component.copyright"
-            rows="3"
-            :readonly="
-              this.isNotPermitted([
-                PERMISSIONS.PORTFOLIO_MANAGEMENT,
-                PERMISSIONS.PORTFOLIO_MANAGEMENT_UPDATE,
-              ])
+        <b-card>
+          <div
+            v-if="
+              !associatedLicensesLoading &&
+              associatedLicenses.length === 0
             "
-          />
-        </b-form-group>
+            class="text-muted"
+          >
+            -
+          </div>
+
+          <div v-if="associatedLicensesLoading" class="text-muted mb-3">
+            <span
+              class="spinner-border spinner-border-sm"
+              role="status"
+              :aria-label="$t('message.loading')"
+            ></span>
+          </div>
+
+          <div
+            v-for="license in associatedLicenses"
+            :key="associatedLicenseKey(license)"
+            class="mb-2"
+          >
+            <b-button
+              variant="outline-secondary"
+              class="w-100 text-start d-flex justify-content-between align-items-center"
+              :aria-expanded="isLicenseExpanded(license)"
+              :aria-controls="licenseCollapseId(license)"
+              @click="toggleLicense(license)"
+            >
+              <span>
+                {{ associatedLicenseLabel(license) }}
+              </span>
+
+              <i
+                class="fa"
+                :class="
+                  isLicenseExpanded(license)
+                    ? 'fa-chevron-up'
+                    : 'fa-chevron-down'
+                "
+                aria-hidden="true"
+              ></i>
+            </b-button>
+
+            <b-collapse
+              :id="licenseCollapseId(license)"
+              :model-value="isLicenseExpanded(license)"
+              class="border border-top-0 rounded-bottom p-3"
+            >
+              <b-input-group-form-input
+                :id="`${licenseCollapseId(license)}-license`"
+                input-group-size="mb-3"
+                type="text"
+                :model-value="licenseValue(license)"
+                :label="$t('message.license')"
+                readonly
+              />
+
+              <b-input-group-form-input
+                :id="`${licenseCollapseId(license)}-expression`"
+                input-group-size="mb-3"
+                type="text"
+                :model-value="license.license_expression || ''"
+                :label="$t('message.license_expression')"
+                readonly
+              />
+
+              <b-input-group-form-input
+                :id="`${licenseCollapseId(license)}-url`"
+                input-group-size="mb-3"
+                type="text"
+                :model-value="license.license_url || ''"
+                :label="$t('message.license_url')"
+                readonly
+              />
+            </b-collapse>
+          </div>
+
+          <b-alert
+            v-if="associatedLicensesError"
+            variant="warning"
+            show
+          >
+            {{ $t('condition.unsuccessful_action') }}
+          </b-alert>
+        </b-card>
       </b-tab>
       <b-tab>
         <template v-slot:title
@@ -504,8 +531,10 @@ export default {
   emits: ['showProperties', 'componentUpdated'],
   data() {
     return {
-      selectableLicenses: [],
-      selectedLicense: '',
+      associatedLicenses: [],
+      associatedLicensesLoading: false,
+      associatedLicensesError: false,
+      expandedLicenses: [],
       supplierUrlsTableColumns: [
         {
           title: this.$t('message.urls'),
@@ -630,7 +659,7 @@ export default {
     };
   },
   beforeMount() {
-    this.retrieveLicenses();
+    this.loadAssociatedLicenses();
   },
   beforeUpdate() {
     //console.log(this.component);
@@ -638,31 +667,50 @@ export default {
   methods: {
     updateComponent: function () {
       this.visible = false;
-      let url = `${this.$api.BASE_URL}/${this.$api.URL_COMPONENT}`;
+      let url = `${this.$api.BASE_URL}/${this.$api.URL_COMPONENTS}/${this.component.uuid}`;
+      let licenses = (this.component.licenses ?? []).map(currentLicense => {
+        const expression = currentLicense.license_expression;
+        const license = currentLicense.resolved_license?.license_id ?? currentLicense.resolvedLicense?.license;
+        const licenseUrl = currentLicense.license_url;
+        return {
+          ...(expression ? { license_expression: expression } : license ? { license } : {}),
+          ...(licenseUrl ? { license_url: licenseUrl } : {}),
+          acknowledgement: currentLicense.acknowledgement ?? "DECLARED",
+        }
+      });
       this.axios
-        .post(url, {
-          uuid: this.component.uuid,
+        .put(url, {
           supplier: this.component.supplier,
           name: this.component.name,
           version: this.component.version,
           group: this.component.group,
-          author: this.component.author,
+          authors: this.component.authors || [],
+          publisher: this.component.publisher,
           description: this.component.description,
-          license: this.selectedLicense,
-          licenseExpression: this.component.licenseExpression,
-          licenseUrl: this.component.licenseUrl,
+          licenses: licenses,
           filename: this.component.filename,
+          extension: this.component.extension,
           classifier: this.component.classifier,
           purl: this.component.purl,
           cpe: this.component.cpe,
           swidTagId: this.component.swidTagId,
           copyright: this.component.copyright,
-          md5: this.component.md5,
-          sha1: this.component.sha1,
-          sha256: this.component.sha256,
-          sha512: this.component.sha512,
-          sha3_256: this.component.sha3_256,
-          sha3_512: this.component.sha3_512,
+          hashes: {
+            md5: this.component.md5,
+            sha1: this.component.sha1,
+            sha256: this.component.sha256,
+            sha384: this.component.sha384,
+            sha512: this.component.sha512,
+            sha3_256: this.component.sha3_256,
+            sha3_384: this.component.sha3_384,
+            sha3_512: this.component.sha3_512,
+            blake2b_256: this.component.blake2b_256,
+            blake2b_384: this.component.blake2b_384,
+            blake2b_512: this.component.blake2b_512,
+            blake3: this.component.blake3,
+            streebog_256: this.component.streebog_256,
+            streebog_512: this.component.streebog_512,
+          },
           notes: this.component.notes,
         })
         .then((response) => {
@@ -691,37 +739,108 @@ export default {
           this.$toastr.w(this.$t('condition.unsuccessful_action'));
         });
     },
-    retrieveLicenses: function () {
-      let url = `${this.$api.BASE_URL}/${this.$api.URL_LICENSE_CONCISE}`;
-      this.axios
-        .get(url)
-        .then((response) => {
-          // Allow for license to be un-selected.
-          this.selectableLicenses.push({ value: '', text: '' });
-          for (let i = 0; i < response.data.length; i++) {
-            let license = response.data[i];
-            this.selectableLicenses.push({
-              value: license.licenseId,
-              text: license.name,
-              uuid: license.uuid,
-            });
-          }
-        })
-        .catch(() => {
-          this.$toastr.w(this.$t('condition.unsuccessful_action'));
-        });
-    },
-    initializeSelectedLicense: function () {
-      const resolvedLicense = this.component.resolvedLicense;
-      if (!resolvedLicense) {
-        this.selectedLicense = null;
+    async loadAssociatedLicenses() {
+      if (!this.component?.uuid || this.associatedLicensesLoading) {
         return;
       }
-      this.selectedLicense =
-        this.selectableLicenses
-          .filter((license) => license.uuid == resolvedLicense.uuid)
-          .map((license) => license.value)
-          .find(() => true) || null;
+    
+      this.expandedLicenses = [];
+      this.associatedLicenses = [];
+      this.associatedLicensesLoading = true;
+      this.associatedLicensesError = false;
+    
+      const url = `${this.$api.BASE_URL}/api/v2/licenses/${encodeURIComponent(
+        this.component.uuid,
+      )}`;
+    
+      let pageToken;
+    
+      try {
+        do {
+          const params = {
+            limit: 100,
+          };
+    
+          if (pageToken) {
+            params.page_token = pageToken;
+          }
+    
+          const response = await this.axios.get(url, { params });
+    
+          this.associatedLicenses.push(...(response.data.items || []));
+          pageToken = response.data.next_page_token;
+        } while (pageToken);
+      } catch {
+        this.associatedLicensesError = true;
+        this.$toastr.w(this.$t('condition.unsuccessful_action'));
+      } finally {
+        this.associatedLicensesLoading = false;
+      }
+    },
+    associatedLicenseLabel(license) {
+      return (
+        license.resolved_license?.name ||
+        license.resolved_license?.license_id ||
+        license.license ||
+        license.license_expression ||
+        license.license_url ||
+        '-'
+      );
+    },
+    associatedLicenseRoute(license) {
+      return `/licenses/${encodeURIComponent(
+        license.resolved_license.license_id,
+      )}`;
+    },
+    associatedLicenseKey(license) {
+      return [
+        license.ordinality,
+        license.acknowledgement,
+        this.associatedLicenseLabel(license),
+      ].join(':');
+    },
+    licenseValue(license) {
+      return (
+        license.resolved_license?.license_id ||
+        license.resolved_license?.name ||
+        license.license ||
+        ''
+      );
+    },
+    associatedLicenseLabel(license) {
+      return (
+        license.resolved_license?.name ||
+        license.resolved_license?.license_id ||
+        license.license ||
+        license.license_expression ||
+        this.$t('message.license')
+      );
+    },
+    associatedLicenseKey(license) {
+      return [
+        license.ordinality,
+        license.acknowledgement,
+        this.licenseValue(license),
+      ].join(':');
+    },
+    licenseCollapseId(license) {
+      return `component-license-${this.component.uuid}-${license.ordinality}`;
+    },
+    isLicenseExpanded(license) {
+      return this.expandedLicenses.includes(
+        this.associatedLicenseKey(license),
+      );
+    },
+    toggleLicense(license) {
+      const key = this.associatedLicenseKey(license);
+
+      if (this.expandedLicenses.includes(key)) {
+        this.expandedLicenses = this.expandedLicenses.filter(
+          (expandedKey) => expandedKey !== key,
+        );
+      } else {
+        this.expandedLicenses.push(key);
+      }
     },
   },
 };

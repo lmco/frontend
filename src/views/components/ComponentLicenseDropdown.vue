@@ -14,6 +14,9 @@
     :to="licenseRoute(licenses[0])"
   >
     {{ licenseLabel(licenses[0]) }}
+    <small v-if="licenses[0].acknowledgement" class="text-muted ms-1">
+      ({{ licenses[0].acknowledgement }})
+    </small>
   </router-link>
 
   <a
@@ -23,10 +26,16 @@
     rel="noopener noreferrer"
   >
     {{ licenseLabel(licenses[0]) }}
+    <small v-if="licenses[0].acknowledgement" class="text-muted ms-1">
+      ({{ licenses[0].acknowledgement }})
+    </small>
   </a>
 
   <span v-else-if="licenses.length === 1">
     {{ licenseLabel(licenses[0]) }}
+    <small v-if="licenses[0].acknowledgement" class="text-muted ms-1">
+      ({{ licenses[0].acknowledgement }})
+    </small>
   </span>
 
   <div v-else>

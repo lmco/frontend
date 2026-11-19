@@ -19,6 +19,7 @@
   "URL_CALCULATOR_CVSS": "api/v1/calculator/cvss",
   "URL_CALCULATOR_OWASP": "api/v1/calculator/owasp",
   "URL_COMPONENT": "api/v1/component",
+  "URL_COMPONENTS": "api/v2/components",
   "URL_CONFIG_PROPERTY": "api/v1/configProperty",
   "URL_CWE": "api/v1/cwe",
   "URL_DEPENDENCY_GRAPH": "api/v1/dependencyGraph",
